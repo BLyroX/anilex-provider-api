@@ -159,8 +159,57 @@ app.get('/api/search/:query', async (req, res, next) => {
     const target = `${BASE}/?s=${encodeURIComponent(query)}`;
     const r = await fetchHtml(target);
     const results = parseSearch(r.html, query);
-    res.json({ ok: true, query, upstream: { status: r.status, url: r.url, ms: r.ms }, results });
-  } catch (e) { next(e); }
+
+    const payload = {
+      ok: true,
+      query,
+      upstream: {
+        status: r.status,
+        url: r.url,
+        ms: r.ms
+      },
+      results
+    };
+
+    if (String(req.query.debug || '') === '1') {
+      const $ = cheerio.load(r.html);
+      const sampleLinks = [];
+
+      $('a[href]').slice(0, 40).each((_, el) => {
+        sampleLinks.push({
+          text: cleanText(
+            $(el).attr('title') || $(el).text()
+          ).slice(0, 120),
+
+          href: $(el).attr('href') || null,
+          class: $(el).attr('class') || null
+        });
+      });
+
+      payload.debug = {
+        htmlLength: r.html.length,
+        pageTitle: cleanText($('title').first().text()),
+        anchorCount: $('a[href]').length,
+        articleCount: $('article').length,
+
+        itemClassCounts: {
+          post: $('.post').length,
+          item: $('.item').length,
+          result: $('.result').length,
+          searchResult: $('.search-result').length,
+          bs: $('.bs').length,
+          bsx: $('.bsx').length,
+          listupd: $('.listupd').length
+        },
+
+        sampleLinks
+      };
+    }
+
+    res.json(payload);
+  } catch (e) {
+    next(e);
+  }
 });
 
 app.get('/api/anime/:id/episodes', async (req, res, next) => {
