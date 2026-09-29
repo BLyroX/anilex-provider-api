@@ -48,26 +48,46 @@ function parseSearch(html, query) {
   const results = [];
   const seen = new Set();
 
-  $('a[href]').each((_, el) => {
-    const href = $(el).attr('href');
+  $('.item').each((_, el) => {
+    const item = $(el);
+
+    const link = item.find('a[href]').first();
+    const href = link.attr('href');
     const url = absoluteUrl(href);
+
     if (!url || !url.startsWith(BASE)) return;
 
-    const text = cleanText($(el).attr('title') || $(el).text());
-    const img = $(el).find('img').first();
-    const image = absoluteUrl(img.attr('data-src') || img.attr('src'));
+    const img = item.find('img').first();
+
+    const title = cleanText(
+      item.find('h1, h2, h3, h4, .title, .name').first().text() ||
+      link.attr('title') ||
+      img.attr('alt') ||
+      item.text()
+    );
+
+    const image = absoluteUrl(
+      img.attr('data-src') ||
+      img.attr('data-lazy-src') ||
+      img.attr('src')
+    );
+
     const slug = slugFromUrl(url);
 
-    if (!slug || slug === '' || slug.includes('?')) return;
-    if (/episode-\d+/i.test(slug)) return;
-    if (!text || text.length < 2) return;
+    if (!slug || !title) return;
 
-    const hay = `${text} ${slug}`.toLowerCase();
-    if (!hay.includes(String(query).toLowerCase())) return;
+    const haystack = `${title} ${slug}`.toLowerCase();
+    if (!haystack.includes(query.toLowerCase())) return;
+
     if (seen.has(url)) return;
     seen.add(url);
 
-    results.push({ title: text, id: slug, url, image: image || null });
+    results.push({
+      title,
+      id: slug,
+      url,
+      image: image || null
+    });
   });
 
   return results.slice(0, 50);
