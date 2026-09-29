@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: anilex-provider-api
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: UPSTREAM_BASE_URL
+        value: https://aniwatch.co.at
+      - key: REQUEST_TIMEOUT_MS
+        value: 12000
